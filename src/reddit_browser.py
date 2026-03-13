@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import time
 from contextlib import contextmanager
 from typing import Any, List, Optional
@@ -16,6 +17,16 @@ from .config import (
 logger = logging.getLogger(__name__)
 
 
+def _debug_log(message: str, data: dict, hypothesis_id: str) -> None:
+    # #region agent log
+    import json
+    try:
+        with open("/Users/raghavshah/reddit_intelligence/.cursor/debug-202cd8.log", "a") as f:
+            f.write(json.dumps({"sessionId": "202cd8", "runId": "run1", "hypothesisId": hypothesis_id, "location": "reddit_browser.py:create_browser_fetcher", "message": message, "data": data, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+    except Exception:
+        pass
+    # #endregion
+
 @contextmanager
 def create_browser_fetcher(subreddit: str = SUBREDDIT_NAME):
     """
@@ -25,31 +36,51 @@ def create_browser_fetcher(subreddit: str = SUBREDDIT_NAME):
     """
     from playwright.sync_api import sync_playwright
 
-    playwright = sync_playwright().start()
-    browser = playwright.chromium.launch(headless=True)
-    context = browser.new_context(
-        viewport={"width": 1920, "height": 1080},
-        locale="en-US",
-        user_agent=(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        ),
-    )
-    page = context.new_page()
-
+    # Unset DYLD_LIBRARY_PATH so Chromium does not inherit it; on macOS it can cause
+    # SIGBUS crash (TargetClosedError). See e.g. playwright/issues/31950.
+    saved_dyld = os.environ.pop("DYLD_LIBRARY_PATH", None)
     try:
-        # Optional: load subreddit HTML first so Reddit can set cookies
+        _debug_log("playwright about to start", {"dyld_was_set": saved_dyld is not None}, "H1")
+        playwright = sync_playwright().start()
+        _debug_log("playwright started", {}, "H1")
+        _debug_log("browser about to launch", {"headless": True}, "H2")
         try:
-            page.goto(f"{REDDIT_BASE_URL}/r/{subreddit}/", wait_until="domcontentloaded", timeout=30000)
-            time.sleep(BROWSER_INITIAL_PAGE_WAIT_SECONDS)
+            browser = playwright.chromium.launch(headless=True, channel="chrome")
+            _debug_log("browser launched", {"has_browser": True, "channel": "chrome"}, "H2")
         except Exception as e:
-            logger.warning("Initial subreddit page load failed (continuing): %s", e)
+            logger.info("System Chrome not available (%s), using bundled Chromium", e)
+            browser = playwright.chromium.launch(headless=True)
+            _debug_log("browser launched", {"has_browser": True, "channel": "chromium"}, "H2")
+        _debug_log("context about to create", {}, "H3")
+        context = browser.new_context(
+            viewport={"width": 1920, "height": 1080},
+            locale="en-US",
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            ),
+        )
+        _debug_log("context created", {}, "H4")
+        _debug_log("about to new_page", {}, "H5")
+        page = context.new_page()
+        _debug_log("page created", {}, "H5")
 
-        yield _BrowserFetcher(page)
+        try:
+            # Optional: load subreddit HTML first so Reddit can set cookies
+            try:
+                page.goto(f"{REDDIT_BASE_URL}/r/{subreddit}/", wait_until="domcontentloaded", timeout=30000)
+                time.sleep(BROWSER_INITIAL_PAGE_WAIT_SECONDS)
+            except Exception as e:
+                logger.warning("Initial subreddit page load failed (continuing): %s", e)
+
+            yield _BrowserFetcher(page)
+        finally:
+            context.close()
+            browser.close()
+            playwright.stop()
     finally:
-        context.close()
-        browser.close()
-        playwright.stop()
+        if saved_dyld is not None:
+            os.environ["DYLD_LIBRARY_PATH"] = saved_dyld
 
 
 class _BrowserFetcher:

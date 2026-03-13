@@ -75,145 +75,207 @@ def upsert_users(conn: duckdb.DuckDBPyConnection, rows: list[dict]) -> None:
     logger.debug("Upserted %s users", len(rows))
 
 
+# Engagement columns for posts: only these are updated when row exists (avoids FK delete+insert).
+POST_ENGAGEMENT_COLUMNS = (
+    "score", "ups", "downs", "upvote_ratio", "num_comments", "subreddit_subscribers"
+)
+
+
 def upsert_posts(conn: duckdb.DuckDBPyConnection, rows: list[dict]) -> None:
-    """Upsert post rows into clickup.posts."""
+    """Upsert post rows. New posts: full INSERT. Existing: only update engagement columns if changed (no full row replace, avoids FK violation)."""
     if not rows:
         return
     for r in rows:
-        conn.execute(
-            """
-            INSERT INTO clickup.posts (
-                post_id, user_id, title, selftext, selftext_html, permalink, url, domain,
-                score, ups, downs, upvote_ratio, num_comments, num_crossposts, total_awards_received,
-                created_utc, edited_at, is_self, post_hint, is_video, over_18, spoiler, locked, archived, stickied,
-                subreddit_subscribers, updated_at
+        post_id = r.get("post_id")
+        existing = conn.execute(
+            "SELECT 1 FROM clickup.posts WHERE post_id = ?", [post_id]
+        ).fetchone()
+        if existing:
+            # Fetch current engagement values to compare
+            cur = conn.execute(
+                "SELECT score, ups, downs, upvote_ratio, num_comments, subreddit_subscribers FROM clickup.posts WHERE post_id = ?",
+                [post_id],
+            ).fetchone()
+            if cur is None:
+                continue
+            (cur_score, cur_ups, cur_downs, cur_ratio, cur_num_comments, cur_subs) = cur
+            new_score = r.get("score")
+            new_ups = r.get("ups")
+            new_downs = r.get("downs")
+            new_ratio = r.get("upvote_ratio")
+            new_num_comments = r.get("num_comments")
+            new_subs = r.get("subreddit_subscribers")
+            if (
+                new_score != cur_score
+                or new_ups != cur_ups
+                or new_downs != cur_downs
+                or new_ratio != cur_ratio
+                or new_num_comments != cur_num_comments
+                or new_subs != cur_subs
+            ):
+                conn.execute(
+                    """
+                    UPDATE clickup.posts SET
+                        score = ?, ups = ?, downs = ?, upvote_ratio = ?, num_comments = ?, subreddit_subscribers = ?, updated_at = now()
+                    WHERE post_id = ?
+                    """,
+                    [new_score, new_ups, new_downs, new_ratio, new_num_comments, new_subs, post_id],
+                )
+            # else: leave row as-is
+        else:
+            conn.execute(
+                """
+                INSERT INTO clickup.posts (post_id, user_id, title, selftext, selftext_html, permalink, url, domain,
+                    score, ups, downs, upvote_ratio, num_comments, num_crossposts, total_awards_received,
+                    created_utc, edited_at, is_self, post_hint, is_video, over_18, spoiler, locked, archived, stickied,
+                    subreddit_subscribers, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?,
+                    ?::TIMESTAMP, ?::TIMESTAMP, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                    ?, now())
+                """,
+                [
+                    post_id,
+                    r.get("user_id"),
+                    r.get("title"),
+                    r.get("selftext"),
+                    r.get("selftext_html"),
+                    r.get("permalink"),
+                    r.get("url"),
+                    r.get("domain"),
+                    r.get("score"),
+                    r.get("ups"),
+                    r.get("downs"),
+                    r.get("upvote_ratio"),
+                    r.get("num_comments"),
+                    r.get("num_crossposts"),
+                    r.get("total_awards_received"),
+                    r.get("created_utc"),
+                    r.get("edited_at"),
+                    r.get("is_self"),
+                    r.get("post_hint"),
+                    r.get("is_video"),
+                    r.get("over_18"),
+                    r.get("spoiler"),
+                    r.get("locked"),
+                    r.get("archived"),
+                    r.get("stickied"),
+                    r.get("subreddit_subscribers"),
+                ],
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::TIMESTAMP, ?::TIMESTAMP, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
-            ON CONFLICT (post_id) DO UPDATE SET
-                user_id = excluded.user_id,
-                title = excluded.title,
-                selftext = excluded.selftext,
-                selftext_html = excluded.selftext_html,
-                permalink = excluded.permalink,
-                url = excluded.url,
-                domain = excluded.domain,
-                score = excluded.score,
-                ups = excluded.ups,
-                downs = excluded.downs,
-                upvote_ratio = excluded.upvote_ratio,
-                num_comments = excluded.num_comments,
-                num_crossposts = excluded.num_crossposts,
-                total_awards_received = excluded.total_awards_received,
-                created_utc = excluded.created_utc,
-                edited_at = excluded.edited_at,
-                is_self = excluded.is_self,
-                post_hint = excluded.post_hint,
-                is_video = excluded.is_video,
-                over_18 = excluded.over_18,
-                spoiler = excluded.spoiler,
-                locked = excluded.locked,
-                archived = excluded.archived,
-                stickied = excluded.stickied,
-                subreddit_subscribers = excluded.subreddit_subscribers,
-                updated_at = now()
-            """,
-            [
-                r.get("post_id"),
-                r.get("user_id"),
-                r.get("title"),
-                r.get("selftext"),
-                r.get("selftext_html"),
-                r.get("permalink"),
-                r.get("url"),
-                r.get("domain"),
-                r.get("score"),
-                r.get("ups"),
-                r.get("downs"),
-                r.get("upvote_ratio"),
-                r.get("num_comments"),
-                r.get("num_crossposts"),
-                r.get("total_awards_received"),
-                r.get("created_utc"),
-                r.get("edited_at"),
-                r.get("is_self"),
-                r.get("post_hint"),
-                r.get("is_video"),
-                r.get("over_18"),
-                r.get("spoiler"),
-                r.get("locked"),
-                r.get("archived"),
-                r.get("stickied"),
-                r.get("subreddit_subscribers"),
-            ],
-        )
     logger.debug("Upserted %s posts", len(rows))
 
 
+# Mutable columns for comments: only these are updated when row exists (avoids FK delete+insert).
+COMMENT_MUTABLE_COLUMNS = (
+    "body", "body_html", "score", "ups", "downs", "total_awards_received",
+    "controversiality", "edited_at", "score_hidden", "stickied", "removed", "locked",
+)
+
+
+def _comment_values_match(cur: tuple, r: dict) -> bool:
+    """Compare current DB row with incoming row for mutable comment fields."""
+    (
+        cur_body, cur_body_html, cur_score, cur_ups, cur_downs,
+        cur_awards, cur_controv, cur_edited, cur_hidden, cur_stickied, cur_removed, cur_locked,
+    ) = cur
+    return (
+        (cur_body == r.get("body"))
+        and (cur_body_html == r.get("body_html"))
+        and (cur_score == r.get("score"))
+        and (cur_ups == r.get("ups"))
+        and (cur_downs == r.get("downs"))
+        and (cur_awards == r.get("total_awards_received"))
+        and (cur_controv == r.get("controversiality"))
+        and (cur_edited == r.get("edited_at"))
+        and (cur_hidden == r.get("score_hidden"))
+        and (cur_stickied == r.get("stickied"))
+        and (cur_removed == r.get("removed"))
+        and (cur_locked == r.get("locked"))
+    )
+
+
 def upsert_comments(conn: duckdb.DuckDBPyConnection, rows: list[dict]) -> None:
-    """Upsert comment rows into clickup.comments. thread_path built with LIST_VALUE for DuckDB."""
+    """Upsert comment rows. New comments: full INSERT. Existing: only update mutable columns if changed (no full row replace, avoids FK violation)."""
     if not rows:
         return
     for r in rows:
-        thread_path = r.get("thread_path") or []
-        # DuckDB list column: use LIST_VALUE(?, ?, ...) or NULL for empty
-        if thread_path:
-            list_placeholders = ", ".join("?" for _ in thread_path)
-            list_sql = f"LIST_VALUE({list_placeholders})"
+        comment_id = r.get("comment_id")
+        existing = conn.execute(
+            "SELECT 1 FROM clickup.comments WHERE comment_id = ?", [comment_id]
+        ).fetchone()
+        if existing:
+            cur = conn.execute(
+                """SELECT body, body_html, score, ups, downs, total_awards_received, controversiality,
+                           edited_at, score_hidden, stickied, removed, locked FROM clickup.comments WHERE comment_id = ?""",
+                [comment_id],
+            ).fetchone()
+            if cur is not None and _comment_values_match(cur, r):
+                continue  # leave as-is
+            if cur is not None:
+                conn.execute(
+                    """
+                    UPDATE clickup.comments SET
+                        body = ?, body_html = ?, score = ?, ups = ?, downs = ?,
+                        total_awards_received = ?, controversiality = ?, edited_at = ?::TIMESTAMP,
+                        score_hidden = ?, stickied = ?, removed = ?, locked = ?, updated_at = now()
+                    WHERE comment_id = ?
+                    """,
+                    [
+                        r.get("body"),
+                        r.get("body_html"),
+                        r.get("score"),
+                        r.get("ups"),
+                        r.get("downs"),
+                        r.get("total_awards_received"),
+                        r.get("controversiality"),
+                        r.get("edited_at"),
+                        r.get("score_hidden"),
+                        r.get("stickied"),
+                        r.get("removed"),
+                        r.get("locked"),
+                        comment_id,
+                    ],
+                )
         else:
-            list_sql = "NULL"
-        conn.execute(
-            f"""
-            INSERT INTO clickup.comments (
-                comment_id, post_id, user_id, parent_reddit_id, parent_comment_id, depth, thread_path,
-                body, body_html, score, ups, downs, total_awards_received, controversiality,
-                created_utc, edited_at, score_hidden, stickied, removed, locked, updated_at
+            thread_path = r.get("thread_path") or []
+            if thread_path:
+                list_placeholders = ", ".join("?" for _ in thread_path)
+                list_sql = f"LIST_VALUE({list_placeholders})"
+            else:
+                list_sql = "NULL"
+            conn.execute(
+                f"""
+                INSERT INTO clickup.comments (
+                    comment_id, post_id, user_id, parent_reddit_id, parent_comment_id, depth, thread_path,
+                    body, body_html, score, ups, downs, total_awards_received, controversiality,
+                    created_utc, edited_at, score_hidden, stickied, removed, locked, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, {list_sql}, ?, ?, ?, ?, ?, ?, ?, ?::TIMESTAMP, ?::TIMESTAMP, ?, ?, ?, ?, now())
+                """,
+                [
+                    comment_id,
+                    r.get("post_id"),
+                    r.get("user_id"),
+                    r.get("parent_reddit_id"),
+                    r.get("parent_comment_id"),
+                    r.get("depth"),
+                    *thread_path,
+                    r.get("body"),
+                    r.get("body_html"),
+                    r.get("score"),
+                    r.get("ups"),
+                    r.get("downs"),
+                    r.get("total_awards_received"),
+                    r.get("controversiality"),
+                    r.get("created_utc"),
+                    r.get("edited_at"),
+                    r.get("score_hidden"),
+                    r.get("stickied"),
+                    r.get("removed"),
+                    r.get("locked"),
+                ],
             )
-            VALUES (?, ?, ?, ?, ?, ?, {list_sql}, ?, ?, ?, ?, ?, ?, ?, ?::TIMESTAMP, ?::TIMESTAMP, ?, ?, ?, ?, now())
-            ON CONFLICT (comment_id) DO UPDATE SET
-                post_id = excluded.post_id,
-                user_id = excluded.user_id,
-                parent_reddit_id = excluded.parent_reddit_id,
-                parent_comment_id = excluded.parent_comment_id,
-                depth = excluded.depth,
-                thread_path = excluded.thread_path,
-                body = excluded.body,
-                body_html = excluded.body_html,
-                score = excluded.score,
-                ups = excluded.ups,
-                downs = excluded.downs,
-                total_awards_received = excluded.total_awards_received,
-                controversiality = excluded.controversiality,
-                created_utc = excluded.created_utc,
-                edited_at = excluded.edited_at,
-                score_hidden = excluded.score_hidden,
-                stickied = excluded.stickied,
-                removed = excluded.removed,
-                locked = excluded.locked,
-                updated_at = now()
-            """,
-            [
-                r.get("comment_id"),
-                r.get("post_id"),
-                r.get("user_id"),
-                r.get("parent_reddit_id"),
-                r.get("parent_comment_id"),
-                r.get("depth"),
-                *thread_path,
-                r.get("body"),
-                r.get("body_html"),
-                r.get("score"),
-                r.get("ups"),
-                r.get("downs"),
-                r.get("total_awards_received"),
-                r.get("controversiality"),
-                r.get("created_utc"),
-                r.get("edited_at"),
-                r.get("score_hidden"),
-                r.get("stickied"),
-                r.get("removed"),
-                r.get("locked"),
-            ],
-        )
     logger.debug("Upserted %s comments", len(rows))
 
 

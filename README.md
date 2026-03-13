@@ -1,21 +1,18 @@
 # Reddit Intelligence
 
-A data pipeline and web app for collecting, storing, and analyzing Reddit discussions from the **ClickUp subreddit**. Data is refreshed weekly and made queryable via a GitHub-hosted web app with an AI-assisted SQL interface.
+A data pipeline for collecting, storing, and analyzing Reddit discussions from the **ClickUp subreddit**. Data is refreshed daily on your Mac and synced to Google Drive. A future web app will let you query the dataset with an AI-assisted SQL interface.
 
 ---
 
 ## Purpose
 
-- **Ingest**: Pull posts and comments from the ClickUp subreddit using [Reddit’s JSON API](https://www.reddit.com/dev/api/) (e.g. `https://www.reddit.com/r/clickup.json`).
-- **Store**: Persist structured data in an open-source analytical database (**DuckDB** or similar) for fast SQL analytics.
-- **Refresh**: Run a **weekly** refresh job to update:
-  - Upvotes / downvotes  
-  - Comment counts and thread engagement  
-  - New posts and comments  
-- **Explore**: A **web app** (hosted via GitHub, e.g. GitHub Pages or similar) that:
-  - Browses and studies the dataset  
-  - Runs **ad-hoc SQL queries**  
-  - Provides an **AI helper** for writing and refining SQL  
+- **Ingest**: Pull posts and comments from the ClickUp subreddit using [Reddit's JSON API](https://www.reddit.com/dev/api/) (e.g. `https://www.reddit.com/r/clickup.json`).
+- **Store**: Persist structured data in **DuckDB** for fast SQL analytics.
+- **Refresh**: Run a **daily** refresh (local macOS only) to update:
+  - Upvotes / downvotes and comment counts
+  - New posts and comments
+  - Only posts with activity in the last 30 days (last comment/reply)
+- **Sync**: Upload the updated DuckDB file to Google Drive after each refresh.
 
 ---
 
@@ -25,68 +22,39 @@ A data pipeline and web app for collecting, storing, and analyzing Reddit discus
 reddit_intelligence/
 ├── .gitignore
 ├── README.md
-├── data/           # DuckDB database, raw/processed data (git-ignored where large)
-├── scripts/        # Ingestion, refresh, and one-off ETL scripts
+├── data/           # DuckDB database, logs (git-ignored where large)
+├── scripts/        # Ingestion, refresh, launchd, and ETL scripts
 ├── src/            # Core Python lib: API client, DB schema, models
-├── webapp/         # Web UI: query interface, AI SQL helper, GitHub-hosted
-└── docs/           # Design notes, runbooks, future specs
+├── webapp/         # Web UI (planned): query interface, AI SQL helper
+└── docs/           # Design notes, runbooks
 ```
 
-- **`data/`** – DuckDB file(s), optional raw JSON, and processed tables; large files excluded via `.gitignore`.
-- **`scripts/`** – Scripts to fetch from Reddit, load into DuckDB, and run the weekly refresh.
-- **`src/`** – Shared code: Reddit client, schema definitions, and data models.
-- **`webapp/`** – Frontend and (if needed) minimal backend for the query UI and AI SQL assistant.
-- **`docs/`** – Documentation and future enhancement specs.
+- **`data/`** – DuckDB file(s), refresh logs; `*.duckdb` and logs are git-ignored.
+- **`scripts/`** – Fetch from Reddit, load into DuckDB, daily refresh script, launchd plist, Google Drive sync.
+- **`src/`** – Reddit client, schema, parsers, DB helpers.
+- **`webapp/`** – Placeholder for future query UI.
 
 ---
 
-## Tech Stack (Planned)
+## Tech Stack
 
-| Layer        | Choice |
-|-------------|--------|
-| Data store  | DuckDB (or similar open-source analytical DB) |
-| Ingestion   | Python + Reddit JSON API |
-| Refresh     | Cron / GitHub Actions (weekly) |
-| Web app     | Static or lightweight stack, hostable on GitHub (e.g. Pages) |
-| SQL helper  | AI integration in the web app for generating/editing SQL |
-
----
-
-## Future Enhancements
-
-### 1. Centralized Feedback Collection
-
-- **Channels**: Expand beyond Reddit to other channels (e.g. Facebook, X, Product Hunt).
-- **Tools**: Use social listening tools (e.g. Brandwatch, Sprout Social) or manual tracking.
-- **Storage**: Centralize all feedback in one place (e.g. ClickUp, Google Sheets, or a dedicated DB).
-
-### 2. Qualitative Analysis
-
-- **Themes**: Surface recurring themes and patterns across feedback.
-- **Pain points**: Highlight common frustrations and challenges.
-- **Opportunities**: Capture suggestions and ideas for product or feature improvements.
-
-### 3. Quantitative Insights
-
-- **Frequency**: How often specific themes or issues are mentioned.
-- **Sentiment trends**: Sentiment over time by category.
-- **Impact**: Assess impact of addressing different feedback areas.
-
-### 4. Decision-Making Framework
-
-- **Prioritization matrix**: Prioritize by urgency, impact, and feasibility.
-- **Actionable insights**: Turn feedback into tasks (e.g. feature updates, bug fixes, pricing).
-- **Ownership**: Assign owners for each feedback category or initiative.
+| Layer       | Choice                          |
+|------------|----------------------------------|
+| Data store | DuckDB                          |
+| Ingestion  | Python + Reddit JSON API         |
+| Refresh    | launchd (macOS, daily at midnight) |
+| Sync       | Google Drive (service account)   |
+| Browser    | Playwright (headless Chromium)  |
 
 ---
 
-## Getting Started (Planned)
+## Getting Started
 
 1. **Clone** the repo and set up a Python virtual environment.
-2. **Configure** Reddit API usage (respect rate limits; use OAuth if needed for higher limits).
-3. **Run ingestion** once to create the DuckDB schema and load initial data.
-4. **Schedule** the weekly refresh (e.g. via cron or GitHub Actions).
-5. **Serve** the web app and use the UI to explore data and the AI SQL helper.
+2. **Install deps**: `pip install -r requirements.txt` and `python -m playwright install chromium`.
+3. **Secrets**: Put your Google Drive service account JSON at `secrets/gdrive-service-account.json` (folder is git-ignored). The refresh script uses it to upload the DB; you can override `GDRIVE_FILE_ID` and `GDRIVE_SA_PATH` via env if needed.
+4. **Initial DB**: Create the schema and load data once (see Scraper below), or download an existing DB: `python scripts/gdrive_db_sync.py download --out data/reddit.duckdb`.
+5. **Schedule**: Install the launchd job so refresh runs daily at midnight (see 24-hour refresh below).
 
 ### Scraper (last 30 days)
 
@@ -94,7 +62,6 @@ Create the DB and run the schema (see `scripts/schema/README.md`), then scrape r
 
 ```bash
 pip install -r requirements.txt
-# If you use the refresh script with --use-browser (or in CI), install the Playwright browser:
 python -m playwright install chromium
 python scripts/run_scrape_clickup_30d.py --db data/reddit.duckdb --days 30
 ```
@@ -103,17 +70,36 @@ Use `--dry-run` to fetch and parse without writing to the database.
 
 ### Database
 
-- **Path:** The main DuckDB file is `data/reddit.duckdb`. It is git-ignored (`*.duckdb` in `.gitignore`), so it is not pushed to the repo.
-- **Create/refresh:** Create the schema (see `scripts/schema/README.md`) and run the scraper or the 24h refresh script (see below). For **GitHub Actions** (scheduled refresh), the workflow can sync the DB via **Google Drive**: download the DB, run the refresh, then upload the updated file. That requires a Google Cloud service account with Drive API access.
-- **Service account key (local):** For local runs that use Google Drive, put the service account JSON at **`secrets/gdrive-service-account.json`** (create the `secrets/` folder; it is git-ignored). For Actions, add a repo secret **`GDRIVE_SA_JSON`** with the full contents of that JSON. See the workflow file and docs for download/upload steps.
+- **Path:** `data/reddit.duckdb` (git-ignored).
+- **Create/refresh:** Run the scraper once, then use the daily refresh script. The refresh script updates engagement and new posts; it skips posts with no activity (post or last comment/reply) in the last 30 days.
+- **Google Drive:** The script `scripts/gdrive_db_sync.py` uploads the DB after refresh. Set `GDRIVE_FILE_ID` (Drive file ID of the DuckDB file). The refresh script sets defaults for `GDRIVE_FILE_ID` and `GDRIVE_SA_PATH` in `scripts/run_refresh_and_upload.sh`.
 
-### 24-hour refresh
+### 24-hour refresh (launchd, macOS)
 
-To refresh the DB (new posts + update engagement and comment trees) on a schedule:
+Daily at **midnight**, the job runs the refresh then uploads the DB to Google Drive.
 
-- **Local (cron):** Run daily, e.g. `0 0 * * *` (midnight):  
-  `cd /path/to/reddit_intelligence && .venv/bin/python scripts/run_refresh_clickup.py --db data/reddit.duckdb --max-posts 100`
-- **GitHub Actions:** Use the workflow in `.github/workflows/refresh-reddit.yml` (24h schedule). Set repo secrets **`GDRIVE_SA_JSON`** (full service account JSON) and **`GDRIVE_FILE_ID`** (Drive file ID of the DuckDB file). The workflow downloads the DB from Drive, runs the refresh, and uploads the DB back. The DuckDB file can live in a **shared drive** (Team Drive); the sync script supports it.
+1. **One-time setup:**
+   - `pip install -r requirements.txt` and `python -m playwright install chromium`
+   - Place `secrets/gdrive-service-account.json` (and ensure `data/reddit.duckdb` exists or download it via `gdrive_db_sync.py download`)
+2. **Install the launchd job:**
+   ```bash
+   cp scripts/com.reddit-intelligence.refresh.plist ~/Library/LaunchAgents/
+   launchctl load ~/Library/LaunchAgents/com.reddit-intelligence.refresh.plist
+   ```
+   On macOS 13+ (Ventura, Sonoma, Tahoe), if `launchctl bootstrap` fails with "Bootstrap failed: 5: Input/output error", use `launchctl load` above. The script sets `GDRIVE_FILE_ID` and `GDRIVE_SA_PATH` itself.
+3. **Logs:** `data/refresh_stdout.log` and `data/refresh_stderr.log`
+4. **Manual run:** `./scripts/run_refresh_and_upload.sh`
+5. **Unload:** `launchctl unload ~/Library/LaunchAgents/com.reddit-intelligence.refresh.plist`
+
+Refresh behavior: up to 500 posts per run, only posts created within the max-age window; existing posts are updated from listing data only (no full thread fetch) for speed; new posts get a full thread fetch. Browser delay between requests is 2 seconds.
+
+---
+
+## Future Enhancements
+
+- **Web app**: Query UI and AI SQL helper (e.g. static or lightweight host).
+- **Channels**: Expand beyond Reddit (e.g. Facebook, X, Product Hunt).
+- **Analysis**: Themes, sentiment, prioritization of feedback.
 
 ---
 

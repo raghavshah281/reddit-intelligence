@@ -11,7 +11,7 @@ RETRY_ATTEMPTS = 3
 RETRY_BACKOFF_SECONDS = 5
 
 # Reddit browser mode (headless Chromium)
-BROWSER_DELAY_BETWEEN_REQUESTS_SECONDS = 8
+BROWSER_DELAY_BETWEEN_REQUESTS_SECONDS = 2
 BROWSER_INITIAL_PAGE_WAIT_SECONDS = 5
 
 # Subreddit (initial)
@@ -24,6 +24,10 @@ DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data
 # Sentinel for [deleted] / missing author
 DELETED_USER_ID = "t2_deleted"
 DELETED_USERNAME = "[deleted]"
+
+
+# Refresh: stop tracking posts with no activity for N days (last activity = post or last comment/reply).
+REFRESH_MAX_AGE_DAYS = 30
 
 
 def get_cutoff_utc(days: int = 30) -> float:
