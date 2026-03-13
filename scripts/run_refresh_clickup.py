@@ -2,11 +2,12 @@
 """
 Refresh r/clickup: discover new posts and update existing posts' engagement and comment trees.
 Runs on a schedule (e.g. every 24h via cron or GitHub Actions).
-Usage: python scripts/run_refresh_clickup.py [--db data/reddit.duckdb] [--max-posts 100]
+Usage: python scripts/run_refresh_clickup.py [--db data/reddit.duckdb] [--max-posts 100] [--use-browser]
 """
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -24,11 +25,11 @@ from src.db import (
 )
 from src.parsers import (
     parse_comment_tree,
-    parse_listing_for_posts,
     parse_post_for_db,
     users_from_post,
 )
-from src.reddit_client import fetch_listing, fetch_post_and_comments
+from src.reddit_client import fetch_listing as fetch_listing_requests
+from src.reddit_client import fetch_post_and_comments as fetch_post_and_comments_requests
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,29 +39,22 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Refresh r/clickup: new posts + update engagement and comments")
-    parser.add_argument("--db", default=DEFAULT_DB_PATH, help="Path to DuckDB file")
-    parser.add_argument("--max-posts", type=int, default=100, help="Max number of posts to refresh (from /new)")
-    args = parser.parse_args()
-
-    conn = get_connection(args.db)
-    ensure_schema(conn)
-    ensure_sentinel_user(conn)
-
-    # Load existing post IDs
+def _run_refresh(conn, listing_url: str, max_posts: int, fetch_listing_fn, fetch_post_and_comments_fn) -> int:
+    """Run the refresh loop using the provided fetch functions. Returns 0 on success."""
     existing_ids = set(
         row[0] for row in conn.execute(f"SELECT post_id FROM {SCHEMA_NAME}.posts").fetchall()
     )
     logger.info("Loaded %s existing post IDs from DB", len(existing_ids))
 
-    # Fetch recent posts from /new (no date filter); collect up to max_posts
-    listing_url = f"{REDDIT_BASE_URL}/r/{SUBREDDIT_NAME}/new.json?limit=100"
     posts_to_process: list = []
     after = None
-    while len(posts_to_process) < args.max_posts:
-        data = fetch_listing(listing_url, after=after)
+    listing_fetch_failed = False
+
+    while len(posts_to_process) < max_posts:
+        data = fetch_listing_fn(listing_url, after=after)
         if not data or "data" not in data:
+            if not posts_to_process:
+                listing_fetch_failed = True
             break
         children = (data.get("data") or {}).get("children") or []
         for child in children:
@@ -70,15 +64,19 @@ def main() -> int:
             post_id = (post.get("id") or "").strip()
             if post_id:
                 posts_to_process.append(post)
-                if len(posts_to_process) >= args.max_posts:
+                if len(posts_to_process) >= max_posts:
                     break
-        if len(posts_to_process) >= args.max_posts:
+        if len(posts_to_process) >= max_posts:
             break
         after = (data.get("data") or {}).get("after")
         if not after:
             break
 
-    logger.info("Fetched %s posts from listing (max %s)", len(posts_to_process), args.max_posts)
+    if listing_fetch_failed:
+        logger.error("Reddit listing fetch failed (e.g. 403 Blocked). No updates obtained; workflow must fail.")
+        return 1
+
+    logger.info("Fetched %s posts from listing (max %s)", len(posts_to_process), max_posts)
 
     subreddit_subscribers = None
     total_users = 0
@@ -101,7 +99,7 @@ def main() -> int:
         if subreddit_subscribers is None:
             subreddit_subscribers = post_data.get("subreddit_subscribers")
 
-        thread = fetch_post_and_comments(SUBREDDIT_NAME, post_id)
+        thread = fetch_post_and_comments_fn(SUBREDDIT_NAME, post_id)
         if not thread or len(thread) < 2:
             logger.warning("No thread data for post %s", post_id)
             post_row = parse_post_for_db(post_data, subreddit_subscribers)
@@ -142,13 +140,55 @@ def main() -> int:
             logger.info("Progress: %s/%s posts", i + 1, len(posts_to_process))
 
     update_subreddit_sync_time(conn, SCHEMA_NAME, "t5_clickup")
-    conn.close()
 
     logger.info(
         "Done. New: %s, Refreshed: %s. Users: %s, Posts: %s, Comments: %s",
         new_posts, refreshed_posts, total_users, total_posts, total_comments,
     )
     return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Refresh r/clickup: new posts + update engagement and comments")
+    parser.add_argument("--db", default=DEFAULT_DB_PATH, help="Path to DuckDB file")
+    parser.add_argument("--max-posts", type=int, default=100, help="Max number of posts to refresh (from /new)")
+    parser.add_argument(
+        "--use-browser",
+        action="store_true",
+        help="Use headless browser for Reddit (recommended in CI); else use requests",
+    )
+    args = parser.parse_args()
+
+    use_browser = args.use_browser or os.environ.get("REDDIT_USE_BROWSER", "").strip().lower() in ("1", "true", "yes")
+
+    conn = get_connection(args.db)
+    ensure_schema(conn)
+    ensure_sentinel_user(conn)
+
+    listing_url = f"{REDDIT_BASE_URL}/r/{SUBREDDIT_NAME}/new.json?limit=100"
+
+    if use_browser:
+        from src.reddit_browser import create_browser_fetcher
+
+        with create_browser_fetcher(SUBREDDIT_NAME) as fetcher:
+            code = _run_refresh(
+                conn,
+                listing_url,
+                args.max_posts,
+                fetcher.fetch_listing,
+                fetcher.fetch_post_and_comments,
+            )
+    else:
+        code = _run_refresh(
+            conn,
+            listing_url,
+            args.max_posts,
+            fetch_listing_requests,
+            fetch_post_and_comments_requests,
+        )
+
+    conn.close()
+    return code
 
 
 if __name__ == "__main__":

@@ -111,7 +111,7 @@ To refresh the DB (new posts + update engagement and comment trees) on a schedul
 
 - **Local (cron):** Run daily, e.g. `0 0 * * *` (midnight):  
   `cd /path/to/reddit_intelligence && .venv/bin/python scripts/run_refresh_clickup.py --db data/reddit.duckdb --max-posts 100`
-- **GitHub Actions:** Use the workflow in `.github/workflows/refresh-reddit.yml` (24h schedule). Set repo secrets **`GDRIVE_SA_JSON`** (full service account JSON) and **`GDRIVE_FILE_ID`** (Drive file ID of the DuckDB file). The workflow downloads the DB from Drive, runs the refresh, and uploads the DB back.
+- **GitHub Actions:** Use the workflow in `.github/workflows/refresh-reddit.yml` (24h schedule). Set repo secrets **`GDRIVE_SA_JSON`** (full service account JSON) and **`GDRIVE_FILE_ID`** (Drive file ID of the DuckDB file). The workflow downloads the DB from Drive, runs the refresh, and uploads the DB back. The DuckDB file can live in a **shared drive** (Team Drive); the sync script supports it.
 
 ---
 

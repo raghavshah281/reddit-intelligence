@@ -1,5 +1,6 @@
 # Refresh r/clickup data every 24 hours: download DB from Google Drive,
 # run refresh script, upload DB back. Requires repo secrets: GDRIVE_SA_JSON, GDRIVE_FILE_ID.
+# The DuckDB file can live in a shared drive (Team Drive); the script supports it.
 
 name: Refresh Reddit (24h)
 
@@ -27,6 +28,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Install Playwright Chromium
+        run: |
+          sudo playwright install-deps chromium
+          playwright install chromium
+
       - name: Download DB from Google Drive
         run: python scripts/gdrive_db_sync.py download --out data/reddit.duckdb
         env:
@@ -34,7 +40,7 @@ jobs:
           GDRIVE_FILE_ID: ${{ secrets.GDRIVE_FILE_ID }}
 
       - name: Run refresh (new posts + update engagement)
-        run: python scripts/run_refresh_clickup.py --db data/reddit.duckdb --max-posts 100
+        run: python scripts/run_refresh_clickup.py --db data/reddit.duckdb --max-posts 100 --use-browser
 
       - name: Upload DB to Google Drive
         run: python scripts/gdrive_db_sync.py upload --file data/reddit.duckdb

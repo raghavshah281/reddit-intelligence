@@ -44,7 +44,7 @@ def download(file_id: str, out_path: str) -> None:
     credentials = service_account.Credentials.from_service_account_info(creds)
     service = build("drive", "v3", credentials=credentials)
 
-    request = service.files().get_media(fileId=file_id)
+    request = service.files().get_media(fileId=file_id, supportsAllDrives=True)
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with open(out_path, "wb") as fh:
         downloader = MediaIoBaseDownload(fh, request)
@@ -68,7 +68,7 @@ def upload(file_id: str, file_path: str) -> None:
     service = build("drive", "v3", credentials=credentials)
 
     media = MediaFileUpload(file_path, resumable=True)
-    service.files().update(fileId=file_id, media_body=media).execute()
+    service.files().update(fileId=file_id, media_body=media, supportsAllDrives=True).execute()
     print(f"Uploaded {file_path} to Drive file {file_id}")
 
 
