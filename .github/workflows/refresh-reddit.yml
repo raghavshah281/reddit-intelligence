@@ -1,0 +1,43 @@
+# Refresh r/clickup data every 24 hours: download DB from Google Drive,
+# run refresh script, upload DB back. Requires repo secrets: GDRIVE_SA_JSON, GDRIVE_FILE_ID.
+
+name: Refresh Reddit (24h)
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # daily at 00:00 UTC
+  workflow_dispatch:      # manual run
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    env:
+      GDRIVE_SA_JSON: ${{ secrets.GDRIVE_SA_JSON }}
+      GDRIVE_FILE_ID: ${{ secrets.GDRIVE_FILE_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download DB from Google Drive
+        run: python scripts/gdrive_db_sync.py download --out data/reddit.duckdb
+        env:
+          GDRIVE_SA_JSON: ${{ secrets.GDRIVE_SA_JSON }}
+          GDRIVE_FILE_ID: ${{ secrets.GDRIVE_FILE_ID }}
+
+      - name: Run refresh (new posts + update engagement)
+        run: python scripts/run_refresh_clickup.py --db data/reddit.duckdb --max-posts 100
+
+      - name: Upload DB to Google Drive
+        run: python scripts/gdrive_db_sync.py upload --file data/reddit.duckdb
+        env:
+          GDRIVE_SA_JSON: ${{ secrets.GDRIVE_SA_JSON }}
+          GDRIVE_FILE_ID: ${{ secrets.GDRIVE_FILE_ID }}
