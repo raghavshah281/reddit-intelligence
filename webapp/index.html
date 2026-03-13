@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reddit Intelligence — SQL Explorer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Reddit Intelligence</h1>
+    <p class="tagline">SQL Explorer · AI helper powered by Gemini 2.5 Flash</p>
+  </header>
+
+  <main>
+    <section class="card" aria-labelledby="nl-heading">
+      <h2 id="nl-heading">Ask in natural language</h2>
+      <p class="hint">Describe what you want and the AI will generate DuckDB SQL.</p>
+      <div class="row">
+        <input type="text" id="nl-input" placeholder="e.g. List top 10 posts by number of comments" aria-label="Natural language question">
+        <button type="button" id="btn-generate" aria-label="Generate SQL">Generate SQL</button>
+      </div>
+      <p id="nl-status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section class="card" aria-labelledby="sql-heading">
+      <h2 id="sql-heading">SQL</h2>
+      <p class="hint">Edit the query if needed, then run it.</p>
+      <textarea id="sql-editor" rows="6" placeholder="SELECT ... FROM clickup.posts LIMIT 10;" aria-label="SQL query"></textarea>
+      <div class="row">
+        <button type="button" id="btn-run" aria-label="Run query">Run</button>
+        <p id="sql-status" class="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="results-heading">
+      <h2 id="results-heading">Results</h2>
+      <div id="results-container">
+        <p id="results-placeholder" class="placeholder">Run a query to see results.</p>
+        <div id="results-table-wrap" class="table-wrap" hidden>
+          <table id="results-table" role="grid"></table>
+        </div>
+        <p id="results-error" class="error" hidden></p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Database: DuckDB · Schema: <a href="semantic_layer.md" id="schema-link">semantic layer</a></p>
+    <p id="backend-status" class="backend-status"></p>
+  </footer>
+
+  <!-- Optional: set window.API_BASE when frontend is on GitHub Pages and backend is elsewhere -->
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

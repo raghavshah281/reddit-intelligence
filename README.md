@@ -32,7 +32,7 @@ reddit_intelligence/
 - **`data/`** – DuckDB file(s), refresh logs; `*.duckdb` and logs are git-ignored.
 - **`scripts/`** – Fetch from Reddit, load into DuckDB, daily refresh script, launchd plist, Google Drive sync.
 - **`src/`** – Reddit client, schema, parsers, DB helpers.
-- **`webapp/`** – Placeholder for future query UI.
+- **`webapp/`** – Query UI: natural-language → SQL (AI helper) and run SQL. Hostable on GitHub Pages; see [webapp/README.md](webapp/README.md).
 
 ---
 
@@ -52,7 +52,7 @@ reddit_intelligence/
 
 1. **Clone** the repo and set up a Python virtual environment.
 2. **Install deps**: `pip install -r requirements.txt` and `python -m playwright install chromium`.
-3. **Secrets**: Put your Google Drive service account JSON at `secrets/gdrive-service-account.json` (folder is git-ignored). The refresh script uses it to upload the DB; you can override `GDRIVE_FILE_ID` and `GDRIVE_SA_PATH` via env if needed.
+3. **Secrets**: Put your Google Drive service account JSON at `secrets/gdrive-service-account.json` (folder is git-ignored). The refresh script uses it to upload the DB; you can override `GDRIVE_FILE_ID` and `GDRIVE_SA_PATH` via env if needed. For the **AI SQL helper** (web app), set `GEMINI_API_KEY` in your environment or in a `.env` file (or place in `secrets/` and load in the backend). Never commit the key.
 4. **Initial DB**: Create the schema and load data once (see Scraper below), or download an existing DB: `python scripts/gdrive_db_sync.py download --out data/reddit.duckdb`.
 5. **Schedule**: Install the launchd job so refresh runs daily at midnight (see 24-hour refresh below).
 

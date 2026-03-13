@@ -25,6 +25,9 @@ DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data
 DELETED_USER_ID = "t2_deleted"
 DELETED_USERNAME = "[deleted]"
 
+# AI SQL helper (web app backend). Set for Gemini 2.5 Flash; leave empty if not using AI features.
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
 
 # Refresh: stop tracking posts with no activity for N days (last activity = post or last comment/reply).
 REFRESH_MAX_AGE_DAYS = 30
