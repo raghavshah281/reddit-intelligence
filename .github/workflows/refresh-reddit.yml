@@ -30,8 +30,8 @@ jobs:
 
       - name: Install Playwright Chromium
         run: |
-          sudo playwright install-deps chromium
-          playwright install chromium
+          sudo env "PATH=$PATH" python -m playwright install-deps chromium
+          python -m playwright install chromium
 
       - name: Download DB from Google Drive
         run: python scripts/gdrive_db_sync.py download --out data/reddit.duckdb

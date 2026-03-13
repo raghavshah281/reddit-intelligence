@@ -94,6 +94,8 @@ Create the DB and run the schema (see `scripts/schema/README.md`), then scrape r
 
 ```bash
 pip install -r requirements.txt
+# If you use the refresh script with --use-browser (or in CI), install the Playwright browser:
+python -m playwright install chromium
 python scripts/run_scrape_clickup_30d.py --db data/reddit.duckdb --days 30
 ```
 
