@@ -2,6 +2,10 @@
 
 import os
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+# Project root: parent of src/
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # Reddit
 REDDIT_BASE_URL = "https://www.reddit.com"
@@ -27,6 +31,25 @@ DELETED_USERNAME = "[deleted]"
 
 # AI SQL helper (web app backend). Set for Gemini 2.5 Flash; leave empty if not using AI features.
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
+
+def get_gemini_api_key() -> str:
+    """Gemini API key from env or secrets/gemini_api_key. Used by P&P pipeline and webapp."""
+    key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if key:
+        return key.strip()
+    path = PROJECT_ROOT / "secrets" / "gemini_api_key"
+    if path.exists():
+        return path.read_text(encoding="utf-8").strip()
+    return ""
+
+
+def get_clickup_api_key() -> str:
+    """ClickUp API key from secrets/clickup_api (raw, no formatting). Used by P&P pipeline for staging."""
+    path = PROJECT_ROOT / "secrets" / "clickup_api"
+    if path.exists():
+        return path.read_text(encoding="utf-8").strip()
+    return os.environ.get("CLICKUP_API_KEY", "").strip()
 
 
 # Refresh: stop tracking posts with no activity for N days (last activity = post or last comment/reply).

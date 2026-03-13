@@ -1,0 +1,177 @@
+[
+  {
+    "issue_id": "pp_feature_removal_packaging_afa36954",
+    "issue_title": "Overbilling, vague pricing, and feature removal in ClickUp 4.0",
+    "category": "Feature Packaging",
+    "summary": "Users are experiencing overbilling and find ClickUp's pricing structure to be extremely vague. This is compounded by a recent ClickUp 4.0 update that removed approximately 20 previously existing features, forcing users to submit new feature requests for functionality they already had. This has severely disrupted their established workflows.",
+    "sentiment": "negative",
+    "frustration_level": "critical",
+    "priority_score": 47.3,
+    "unique_users": 1,
+    "total_mentions": 1,
+    "engagement_score": 7.0,
+    "thread_count": 1,
+    "first_seen_date": "2026-03-12",
+    "last_seen_date": "2026-03-12",
+    "example_quotes": [
+      "overbilling and super vague pricing",
+      "removed like 20 features",
+      "Absolutely ruined my workflow."
+    ],
+    "source_links": [
+      "https://www.reddit.com/r/clickup/comments/1rnbtl2/please_always_allow_us_to_keep_30/",
+      "https://www.reddit.com/r/clickup/comments/1rnbtl2/please_always_allow_us_to_keep_30/oa1s6me/"
+    ],
+    "root_cause_hypothesis": "The issues stem from a combination of unclear and potentially deceptive pricing practices leading to overbilling, and a significant product update (ClickUp 4.0) that removed numerous core features, disrupting user workflows and forcing them to re-request previously available functionality.",
+    "affected_plan_or_feature": "ClickUp 4.0 update, general pricing structure, and approximately 20 unspecified features.",
+    "urgency_signals": false,
+    "competitor_mentions": [],
+    "responded_by_clickup": false
+  },
+  {
+    "issue_id": "pp_free_plan_feature_restriction_0ec686a9",
+    "issue_title": "Free plan guest access for client collaboration",
+    "category": "Feature Packaging",
+    "summary": "A user expresses frustration with a competitor (Asana) for restricting client collaboration features on their free plan, requiring an upgrade for basic sharing. They are seeking a project management tool that allows guest access for clients on a free tier. The discussion clarifies that ClickUp's Free Forever plan *does* allow inviting guests to specific project elements.",
+    "sentiment": "negative",
+    "frustration_level": "high",
+    "priority_score": 43.4,
+    "unique_users": 1,
+    "total_mentions": 1,
+    "engagement_score": 4.0,
+    "thread_count": 1,
+    "first_seen_date": "2026-03-12",
+    "last_seen_date": "2026-03-12",
+    "example_quotes": [
+      "apparently they no longer allow you to add individuals to boards on the free plan.",
+      "I'm not paying for an upgrade just to share my projects with clients",
+      "Yes, you can! ClickUp lets you invite [guests] to specific Folders, Lists, and tasks"
+    ],
+    "source_links": [
+      "https://www.reddit.com/r/clickup/comments/1rrts37/considering_moving_from_asana_but_have_questions/",
+      "https://www.reddit.com/r/clickup/comments/1rrts37/considering_moving_from_asana_but_have_questions/oa29djm/"
+    ],
+    "root_cause_hypothesis": "The user's concern stems from a competitor's (Asana's) recent change in their free plan's feature set, specifically removing the ability to add individuals/clients to boards without a paid upgrade. This leads users to seek alternatives like ClickUp.",
+    "affected_plan_or_feature": "The discussion revolves around 'free plans' and the ability to 'add individuals/clients' or 'guests' for collaboration. Specifically, ClickUp's 'Free Forever plan' and its 'guest' user role feature are addressed.",
+    "urgency_signals": false,
+    "competitor_mentions": [
+      "Asana"
+    ],
+    "responded_by_clickup": false
+  },
+  {
+    "issue_id": "pp_guest_user_pricing_complaint_193fad7b",
+    "issue_title": "Conflicting Free vs. Paid Guest Access Policy",
+    "category": "Plan Structure",
+    "summary": "Users are confused and frustrated by ClickUp's guest access policy, specifically having to pay for guests on their plan despite believing they can invite them for free. They are paying for guests in increments (e.g., 'each 5 guests') even when providing them write access.",
+    "sentiment": "negative",
+    "frustration_level": "high",
+    "priority_score": 43.3,
+    "unique_users": 1,
+    "total_mentions": 1,
+    "engagement_score": 3.0,
+    "thread_count": 1,
+    "first_seen_date": "2026-03-13",
+    "last_seen_date": "2026-03-13",
+    "example_quotes": [
+      "Then why do I have to pay for guests on my plan if I can invite them for free, I give them access to write",
+      "We pay for each 5 guests..."
+    ],
+    "source_links": [
+      "https://www.reddit.com/r/clickup/comments/1rrts37/considering_moving_from_asana_but_have_questions/",
+      "https://www.reddit.com/r/clickup/comments/1rrts37/considering_moving_from_asana_but_have_questions/oa6wkfj/"
+    ],
+    "root_cause_hypothesis": "Likely a misunderstanding of ClickUp's guest access tiers or a lack of clarity in their pricing/packaging documentation regarding the distinction between 'free' guest invitations and 'paid' guest access with specific permissions (like write access) on certain plans.",
+    "affected_plan_or_feature": "Guest access, pricing plans, user permissions (specifically write access for guests).",
+    "urgency_signals": false,
+    "competitor_mentions": [],
+    "responded_by_clickup": false
+  },
+  {
+    "issue_id": "pp_broken_feature_value_complaint_772358c8",
+    "issue_title": "Inability to Edit or Delete Reminders",
+    "category": "Value Complaints",
+    "summary": "Users are unable to edit or delete existing reminders, including recurring ones, within ClickUp. This issue has reportedly persisted for at least four months, causing users to be stuck with unwanted or outdated reminders.",
+    "sentiment": "negative",
+    "frustration_level": "high",
+    "priority_score": 40.9,
+    "unique_users": 0,
+    "total_mentions": 0,
+    "engagement_score": 3.0,
+    "thread_count": 1,
+    "first_seen_date": "2026-03-07",
+    "last_seen_date": "2026-03-07",
+    "example_quotes": [
+      "I still can't edit or delete reminder.",
+      "It is a bit ridiculous that a paid app won't let me edit something."
+    ],
+    "source_links": [
+      "https://www.reddit.com/r/clickup/comments/1rn2o3c/edit_or_delete_reminderswhy_cant_we_edit_them/"
+    ],
+    "root_cause_hypothesis": "The core functionality to edit or delete reminders, especially recurring ones, appears to be either missing, broken, or not intuitively accessible within the ClickUp application.",
+    "affected_plan_or_feature": "Reminders (editing and deleting functionality)",
+    "urgency_signals": false,
+    "competitor_mentions": [],
+    "responded_by_clickup": false
+  },
+  {
+    "issue_id": "pp_feature_packaging_confusing_590f2365",
+    "issue_title": "Difficulty understanding feature availability across different ClickUp plans",
+    "category": "Feature Packaging",
+    "summary": "A solopreneur/freelancer found it overwhelming to discern which features are available on specific ClickUp plans. This complexity made the initial decision-making process for a paid plan challenging, despite eventually committing to one.",
+    "sentiment": "negative",
+    "frustration_level": "medium",
+    "priority_score": 39.5,
+    "unique_users": 1,
+    "total_mentions": 1,
+    "engagement_score": 3.0,
+    "thread_count": 1,
+    "first_seen_date": "2026-03-12",
+    "last_seen_date": "2026-03-12",
+    "example_quotes": [
+      "pretty overwhelming as far as which features are avail on which plan.",
+      "I realized I needed to do a paid plan shortly after swapping",
+      "I decided I was fine with the $10/month charge bc it does have many capabilities and I believe the charge will be worth it IF I commi"
+    ],
+    "source_links": [
+      "https://www.reddit.com/r/clickup/comments/1rrts37/considering_moving_from_asana_but_have_questions/",
+      "https://www.reddit.com/r/clickup/comments/1rrts37/considering_moving_from_asana_but_have_questions/oa4w2g3/"
+    ],
+    "root_cause_hypothesis": "ClickUp's pricing and packaging structure may be too complex or not clearly communicate the feature sets included in each plan, leading to user confusion and an overwhelming onboarding experience.",
+    "affected_plan_or_feature": "Understanding of all paid plans and their respective feature sets, particularly when transitioning from a free to a paid tier.",
+    "urgency_signals": false,
+    "competitor_mentions": [
+      "Asana"
+    ],
+    "responded_by_clickup": false
+  },
+  {
+    "issue_id": "pp_free_plan_usage_limits_clarifi_c24137bf",
+    "issue_title": "Unclear 'uses' terminology for free plan feature limits",
+    "category": "Usage Limits",
+    "summary": "A user is confused by the term 'uses' which appears to limit various features in the free version of ClickUp. They are unsure if 'uses' refers to the number of times a feature can be applied (e.g., custom fields on tasks) or the total quantity of an item (e.g., number of custom fields allowed). This ambiguity makes it difficult to understand the actual limitations of the free plan.",
+    "sentiment": "neutral",
+    "frustration_level": "low",
+    "priority_score": 25.8,
+    "unique_users": 1,
+    "total_mentions": 1,
+    "engagement_score": 3.0,
+    "thread_count": 1,
+    "first_seen_date": "2026-03-13",
+    "last_seen_date": "2026-03-13",
+    "example_quotes": [
+      "What exactly do all these 'uses' mean?",
+      "Everything in the free version seems to have some limited number of 'uses' - is that the same meaning for everything?",
+      "Like if I create custom fields, does that mean I can only use them on 100 tasks or I can only have 100 fields?"
+    ],
+    "source_links": [
+      "https://www.reddit.com/r/clickup/comments/1rrts37/considering_moving_from_asana_but_have_questions/",
+      "https://www.reddit.com/r/clickup/comments/1rrts37/considering_moving_from_asana_but_have_questions/oa55vt6/"
+    ],
+    "root_cause_hypothesis": "The primary cause is likely unclear or inconsistent terminology used in ClickUp's pricing/feature documentation, specifically regarding the word 'uses' and its application to different features without precise definition.",
+    "affected_plan_or_feature": "Free plan, Custom Fields, Workload View, and potentially other features with 'uses' limits.",
+    "urgency_signals": false,
+    "competitor_mentions": [],
+    "responded_by_clickup": false
+  }
+]
